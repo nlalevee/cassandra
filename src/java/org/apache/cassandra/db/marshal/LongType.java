@@ -80,6 +80,12 @@ public class LongType extends AbstractType<Long>
         return this == otherType || otherType == DateType.instance || otherType == TimestampType.instance;
     }
 
+    @Override
+    public boolean isCompatibleWith(AbstractType<?> previous)
+    {
+        return super.isCompatibleWith(previous) || previous == BytesType.instance;
+    }
+
     public CQL3Type asCQL3Type()
     {
         return CQL3Type.Native.BIGINT;

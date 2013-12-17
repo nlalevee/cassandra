@@ -189,7 +189,7 @@ public class UTF8Type extends AbstractType<String>
     {
         // Anything that is ascii is also utf8, and they both use bytes
         // comparison
-        return this == previous || previous == AsciiType.instance;
+        return this == previous || previous == AsciiType.instance || previous == BytesType.instance;
     }
 
     public CQL3Type asCQL3Type()

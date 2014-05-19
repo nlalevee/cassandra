@@ -229,6 +229,9 @@ public class NodeTool
         @Option(type = OptionType.GLOBAL, name = {"-pwf", "--password-file"}, description = "Path to the JMX password file")
         private String passwordFilePath = EMPTY;
 
+        @Option(type = OptionType.GLOBAL, name = {"-H", "--human-readable"}, description = "Print sizes in human readable format (e.g., 1K 234M 2G)")
+        protected boolean human = false;
+
         @Override
         public void run()
         {
@@ -333,6 +336,12 @@ public class NodeTool
         {
             return cmdArgs.size() <= 1 ? EMPTY_STRING_ARRAY : toArray(cmdArgs.subList(1, cmdArgs.size()), String.class);
         }
+
+        protected String stringifyBytes(long size)
+        {
+			return human ? FileUtils.stringifyFileSize(size) : size + " bytes";
+		}
+
     }
 
     @Command(name = "info", description = "Print node information (uptime, load, ...)")
@@ -376,33 +385,33 @@ public class NodeTool
             CacheServiceMBean cacheService = probe.getCacheServiceMBean();
 
             // Key Cache: Hits, Requests, RecentHitRate, SavePeriodInSeconds
-            System.out.printf("%-17s: entries %d, size %d (bytes), capacity %d (bytes), %d hits, %d requests, %.3f recent hit rate, %d save period in seconds%n",
+            System.out.printf("%-17s: entries %d, size %s, capacity %s, %d hits, %d requests, %.3f recent hit rate, %d save period in seconds%n",
                     "Key Cache",
                     probe.getCacheMetric("KeyCache", "Entries"),
-                    probe.getCacheMetric("KeyCache", "Size"),
-                    probe.getCacheMetric("KeyCache", "Capacity"),
+                    stringifyBytes((Long) probe.getCacheMetric("KeyCache", "Size")),
+                    stringifyBytes((Long) probe.getCacheMetric("KeyCache", "Capacity")),
                     probe.getCacheMetric("KeyCache", "Hits"),
                     probe.getCacheMetric("KeyCache", "Requests"),
                     probe.getCacheMetric("KeyCache", "HitRate"),
                     cacheService.getKeyCacheSavePeriodInSeconds());
 
             // Row Cache: Hits, Requests, RecentHitRate, SavePeriodInSeconds
-            System.out.printf("%-17s: entries %d, size %d (bytes), capacity %d (bytes), %d hits, %d requests, %.3f recent hit rate, %d save period in seconds%n",
+            System.out.printf("%-17s: entries %d, size %s, capacity %s, %d hits, %d requests, %.3f recent hit rate, %d save period in seconds%n",
                     "Row Cache",
                     probe.getCacheMetric("RowCache", "Entries"),
-                    probe.getCacheMetric("RowCache", "Size"),
-                    probe.getCacheMetric("RowCache", "Capacity"),
+                    stringifyBytes((Long) probe.getCacheMetric("RowCache", "Size")),
+                    stringifyBytes((Long) probe.getCacheMetric("RowCache", "Capacity")),
                     probe.getCacheMetric("RowCache", "Hits"),
                     probe.getCacheMetric("RowCache", "Requests"),
                     probe.getCacheMetric("RowCache", "HitRate"),
                     cacheService.getRowCacheSavePeriodInSeconds());
 
             // Counter Cache: Hits, Requests, RecentHitRate, SavePeriodInSeconds
-            System.out.printf("%-17s: entries %d, size %d (bytes), capacity %d (bytes), %d hits, %d requests, %.3f recent hit rate, %d save period in seconds%n",
+            System.out.printf("%-17s: entries %d, size %s, capacity %s, %d hits, %d requests, %.3f recent hit rate, %d save period in seconds%n",
                     "Counter Cache",
                     probe.getCacheMetric("CounterCache", "Entries"),
-                    probe.getCacheMetric("CounterCache", "Size"),
-                    probe.getCacheMetric("CounterCache", "Capacity"),
+                    stringifyBytes((Long) probe.getCacheMetric("CounterCache", "Size")),
+                    stringifyBytes((Long) probe.getCacheMetric("CounterCache", "Capacity")),
                     probe.getCacheMetric("CounterCache", "Hits"),
                     probe.getCacheMetric("CounterCache", "Requests"),
                     probe.getCacheMetric("CounterCache", "HitRate"),
@@ -556,7 +565,7 @@ public class NodeTool
                     System.out.printf("    %s%n", info.peer.toString());
                     if (!info.receivingSummaries.isEmpty())
                     {
-                        System.out.printf("        Receiving %d files, %d bytes total%n", info.getTotalFilesToReceive(), info.getTotalSizeToReceive());
+                        System.out.printf("        Receiving %d files, %s total%n", info.getTotalFilesToReceive(), stringifyBytes(info.getTotalSizeToReceive()));
                         for (ProgressInfo progress : info.getReceivingFiles())
                         {
                             System.out.printf("            %s%n", progress.toString());
@@ -564,7 +573,7 @@ public class NodeTool
                     }
                     if (!info.sendingSummaries.isEmpty())
                     {
-                        System.out.printf("        Sending %d files, %d bytes total%n", info.getTotalFilesToSend(), info.getTotalSizeToSend());
+                        System.out.printf("        Sending %d files, %s total%n", info.getTotalFilesToSend(), stringifyBytes(info.getTotalSizeToSend()));
                         for (ProgressInfo progress : info.getSendingFiles())
                         {
                             System.out.printf("            %s%n", progress.toString());
@@ -717,12 +726,12 @@ public class NodeTool
                                 System.out.println("]");
                         }
                     }
-                    System.out.println("\t\tSpace used (live), bytes: " + probe.getColumnFamilyMetric(keyspaceName, cfName, "LiveDiskSpaceUsed"));
-                    System.out.println("\t\tSpace used (total), bytes: " + probe.getColumnFamilyMetric(keyspaceName, cfName, "TotalDiskSpaceUsed"));
-                    System.out.println("\t\tSpace used by snapshots (total), bytes: " + probe.getColumnFamilyMetric(keyspaceName, cfName, "SnapshotsSize"));
+					System.out.println("\t\tSpace used (live): " + stringifyBytes((Long) probe.getColumnFamilyMetric(keyspaceName, cfName, "LiveDiskSpaceUsed")));
+					System.out.println("\t\tSpace used (total): " + stringifyBytes((Long) probe.getColumnFamilyMetric(keyspaceName, cfName, "TotalDiskSpaceUsed")));
+                    System.out.println("\t\tSpace used by snapshots (total): " + stringifyBytes((Long) probe.getColumnFamilyMetric(keyspaceName, cfName, "SnapshotsSize")));
                     System.out.println("\t\tSSTable Compression Ratio: " + probe.getColumnFamilyMetric(keyspaceName, cfName, "CompressionRatio"));
                     System.out.println("\t\tMemtable cell count: " + probe.getColumnFamilyMetric(keyspaceName, cfName, "MemtableColumnsCount"));
-                    System.out.println("\t\tMemtable data size, bytes: " + probe.getColumnFamilyMetric(keyspaceName, cfName, "MemtableLiveDataSize"));
+                    System.out.println("\t\tMemtable data size: " + stringifyBytes((Long) probe.getColumnFamilyMetric(keyspaceName, cfName, "MemtableLiveDataSize")));
                     System.out.println("\t\tMemtable switch count: " + probe.getColumnFamilyMetric(keyspaceName, cfName, "MemtableSwitchCount"));
                     System.out.println("\t\tLocal read count: " + ((JmxReporter.TimerMBean) probe.getColumnFamilyMetric(keyspaceName, cfName, "ReadLatency")).getCount());
                     double localReadLatency = ((JmxReporter.TimerMBean) probe.getColumnFamilyMetric(keyspaceName, cfName, "ReadLatency")).getMean() / 1000;
@@ -735,10 +744,10 @@ public class NodeTool
                     System.out.println("\t\tPending flushes: " + probe.getColumnFamilyMetric(keyspaceName, cfName, "PendingFlushes"));
                     System.out.println("\t\tBloom filter false positives: " + probe.getColumnFamilyMetric(keyspaceName, cfName, "BloomFilterFalsePositives"));
                     System.out.println("\t\tBloom filter false ratio: " + format("%01.5f", probe.getColumnFamilyMetric(keyspaceName, cfName, "RecentBloomFilterFalseRatio")));
-                    System.out.println("\t\tBloom filter space used, bytes: " + probe.getColumnFamilyMetric(keyspaceName, cfName, "BloomFilterDiskSpaceUsed"));
-                    System.out.println("\t\tCompacted partition minimum bytes: " + probe.getColumnFamilyMetric(keyspaceName, cfName, "MinRowSize"));
-                    System.out.println("\t\tCompacted partition maximum bytes: " + probe.getColumnFamilyMetric(keyspaceName, cfName, "MaxRowSize"));
-                    System.out.println("\t\tCompacted partition mean bytes: " + probe.getColumnFamilyMetric(keyspaceName, cfName, "MeanRowSize"));
+                    System.out.println("\t\tBloom filter space used: " + stringifyBytes((Long) probe.getColumnFamilyMetric(keyspaceName, cfName, "BloomFilterDiskSpaceUsed")));
+                    System.out.println("\t\tCompacted partition minimum: " + stringifyBytes((Long) probe.getColumnFamilyMetric(keyspaceName, cfName, "MinRowSize")));
+                    System.out.println("\t\tCompacted partition maximum: " + stringifyBytes((Long) probe.getColumnFamilyMetric(keyspaceName, cfName, "MaxRowSize")));
+                    System.out.println("\t\tCompacted partition mean: " + stringifyBytes((Long) probe.getColumnFamilyMetric(keyspaceName, cfName, "MeanRowSize")));
                     System.out.println("\t\tAverage live cells per slice (last five minutes): " + ((JmxReporter.HistogramMBean) probe.getColumnFamilyMetric(keyspaceName, cfName, "LiveScannedHistogram")).getMean());
                     System.out.println("\t\tAverage tombstones per slice (last five minutes): " + ((JmxReporter.HistogramMBean) probe.getColumnFamilyMetric(keyspaceName, cfName, "TombstoneScannedHistogram")).getMean());
 
@@ -874,16 +883,16 @@ public class NodeTool
             System.out.println(format("%-10s%10s%18s%18s%18s%18s",
                     "Percentile", "SSTables", "Write Latency", "Read Latency", "Partition Size", "Cell Count"));
             System.out.println(format("%-10s%10s%18s%18s%18s%18s",
-                    "", "", "(micros)", "(micros)", "(bytes)", ""));
+                    "", "", "(micros)", "(micros)", "", ""));
 
             for (int i = 0; i < percentiles.length; i++)
             {
-                System.out.println(format("%-10s%10.2f%18.2f%18.2f%18.0f%18.0f",
+                System.out.println(format("%-10s%10.2f%18.2f%18.2f%18s%18.0f",
                         percentiles[i],
                         sstablesPerRead[i],
                         writeLatency[i],
                         readLatency[i],
-                        estimatedRowSizePercentiles[i],
+                        stringifyBytes((long) estimatedRowSizePercentiles[i]),
                         estimatedColumnCountPercentiles[i]));
             }
             System.out.println();
@@ -1130,9 +1139,9 @@ public class NodeTool
             if (cm.getCompactions().size() > 0)
             {
             	List<String[]> lines = new ArrayList<>();
-				int[] columnSizes = new int[] { 0, 0, 0, 0, 0, 0, 0 };
+				int[] columnSizes = new int[] { 0, 0, 0, 0, 0, 0 };
 
-				addLine(lines, columnSizes, "compaction type", "keyspace", "table", "completed", "total", "unit", "progress");
+				addLine(lines, columnSizes, "compaction type", "keyspace", "table", "completed", "total", "progress");
 	            for (Map<String, String> c : cm.getCompactions())
 	            {
 	            	long total = Long.parseLong(c.get("total"));
@@ -1140,9 +1149,10 @@ public class NodeTool
 	            	String taskType = c.get("taskType");
 	            	String keyspace = c.get("keyspace");
 	            	String columnFamily = c.get("columnfamily");
-	            	String unit = c.get("unit");
 	            	String percentComplete = total == 0 ? "n/a" : new DecimalFormat("0.00").format((double) completed / total * 100) + "%";
-	            	addLine(lines, columnSizes, taskType, keyspace, columnFamily, Long.toString(completed), Long.toString(total), unit, percentComplete);
+					addLine(lines, columnSizes, taskType, keyspace, columnFamily,
+						 	stringifyBytes(completed),
+						 	stringifyBytes(total), percentComplete);
 	                if (taskType.equals(OperationType.COMPACTION.toString()))
 	                    remainingBytes += total - completed;
 	            }
@@ -1158,7 +1168,7 @@ public class NodeTool
 
 				for (String[] line : lines)
 	            {
-	                System.out.printf(format, line[0], line[1], line[2], line[3], line[4], line[5], line[6]);
+	                System.out.printf(format, line[0], line[1], line[2], line[3], line[4], line[5]);
 	            }
 
 				String remainingTime = "n/a";

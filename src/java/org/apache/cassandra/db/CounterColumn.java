@@ -162,7 +162,10 @@ public class CounterColumn extends Column
     @Override
     public IColumn reconcile(IColumn column, Allocator allocator)
     {
-        assert (column instanceof CounterColumn) || (column instanceof DeletedColumn) : "Wrong class type: " + column.getClass();
+    	if (!(column instanceof CounterColumn) && !(column instanceof DeletedColumn)) {
+    		logger.error("Unexpected column type " + column.getClass() + " while reconciliating it with " + this.getClass());
+    		return this;
+    	}
 
         if (column.isMarkedForDelete()) // live + tombstone: track last tombstone
         {

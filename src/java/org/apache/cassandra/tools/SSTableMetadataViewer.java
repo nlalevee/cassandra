@@ -23,8 +23,14 @@ import java.io.PrintStream;
 import java.util.EnumSet;
 import java.util.Map;
 
+import org.apache.cassandra.io.compress.CompressionMetadata;
+import org.apache.cassandra.io.sstable.Component;
 import org.apache.cassandra.io.sstable.Descriptor;
-import org.apache.cassandra.io.sstable.metadata.*;
+import org.apache.cassandra.io.sstable.metadata.CompactionMetadata;
+import org.apache.cassandra.io.sstable.metadata.MetadataComponent;
+import org.apache.cassandra.io.sstable.metadata.MetadataType;
+import org.apache.cassandra.io.sstable.metadata.StatsMetadata;
+import org.apache.cassandra.io.sstable.metadata.ValidationMetadata;
 
 /**
  * Shows the contents of sstable metadata
@@ -52,6 +58,11 @@ public class SSTableMetadataViewer
                 ValidationMetadata validation = (ValidationMetadata) metadata.get(MetadataType.VALIDATION);
                 StatsMetadata stats = (StatsMetadata) metadata.get(MetadataType.STATS);
                 CompactionMetadata compaction = (CompactionMetadata) metadata.get(MetadataType.COMPACTION);
+				CompressionMetadata compression = null;
+		        File compressionFile = new File(descriptor.filenameFor(Component.COMPRESSION_INFO));
+		        if (compressionFile.exists()) {
+		        	compression = CompressionMetadata.create(fname);
+		        }
 
                 out.printf("SSTable: %s%n", descriptor);
                 if (validation != null)
@@ -64,7 +75,10 @@ public class SSTableMetadataViewer
                     out.printf("Minimum timestamp: %s%n", stats.minTimestamp);
                     out.printf("Maximum timestamp: %s%n", stats.maxTimestamp);
                     out.printf("SSTable max local deletion time: %s%n", stats.maxLocalDeletionTime);
-                    out.printf("Compression ratio: %s%n", stats.compressionRatio);
+					if (compression != null) {
+						out.printf("Compressor: %s%n", compression.compressor().getClass().getName());
+						out.printf("Compression ratio: %s%n", stats.compressionRatio);
+					}
                     out.printf("Estimated droppable tombstones: %s%n", stats.getEstimatedDroppableTombstoneRatio((int) (System.currentTimeMillis() / 1000)));
                     out.printf("SSTable Level: %d%n", stats.sstableLevel);
                     out.printf("Repaired at: %d%n", stats.repairedAt);
